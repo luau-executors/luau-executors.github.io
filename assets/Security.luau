@@ -152,6 +152,15 @@ local function wrap(real)
                 return nil
             end
 
+            -- Block Kick and Destroy methods on Player instances
+            if typeof(real) == "Instance" and real.ClassName == "Player" then
+                if index == "Kick" or index == "Destroy" then
+                    return function(...)
+                        warn("cAPI :: Attempt to call '" .. index .. "' on Player instance blocked")
+                    end
+                end
+            end
+
             -- Allow access to other properties/methods
             if typeof(real[index]) == "function" then
                 return function(self, ...)
