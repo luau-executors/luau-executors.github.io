@@ -109,7 +109,7 @@ local blockedFunctions = {
     "PromptUpdateOutfit"
 }
 
-local wrappercache = {}
+local wrappercache = {} -- Cache for wrapped objects
 
 local function unwrap(wrapped)
     if type(wrapped) == "table" then
@@ -139,17 +139,20 @@ local function wrap(real)
         local meta = getmetatable(fake)
 
         meta.__index = function(self, index)
+            -- Block access to blocked functions
             if table.find(blockedFunctions, index) then
                 return function(...)
                     warn("cAPI :: Attempt to call blocked function '" .. index .. "'")
                 end
             end
 
+            -- Block access to vulnerable instances
             if table.find(vulnerableInstances, tostring(real)) then
                 warn("cAPI :: Attempt to access vulnerable instance '" .. tostring(real) .. "'")
                 return nil
             end
 
+            -- Block Kick and Destroy methods on Player instances
             if typeof(real) == "Instance" and real.ClassName == "Player" then
                 if index == "Kick" or index == "Destroy" then
                     return function(...)
@@ -158,7 +161,14 @@ local function wrap(real)
                 end
             end
 
-            return wrap(real[index])
+            -- Allow access to other properties/methods
+            if typeof(real[index]) == "function" then
+                return function(self, ...)
+                    return real[index](real, ...)
+                end
+            else
+                return wrap(real[index])
+            end
         end
 
         meta.__newindex = function(self, key, value)
@@ -193,11 +203,8 @@ local function wrap(real)
     end
 end
 
+-- Wrap the entire game environment
 local wrappedGame = wrap(game)
+
+-- Replace the global `game` with the wrapped version
 game = wrappedGame
-
-local wrappedPlayers = wrap(game:GetService("Players"))
-game.Players = wrappedPlayers
-
-local wrappedLocalPlayer = wrap(game.Players.LocalPlayer)
-game.Players.LocalPlayer = wrappedLocalPlayer
