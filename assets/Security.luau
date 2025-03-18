@@ -217,5 +217,5 @@ end
 local wrappedGame = wrap(game)
 
 -- Replace the global with wrapped environment
-game = wrappedGame
+getgenv().game = wrappedGame
 
