@@ -111,6 +111,9 @@ local blockedFunctions = {
 
 local wrappercache = {} -- Cache for wrapped objects
 
+-- Store a reference to LocalPlayer outside the wrap function
+local LocalPlayer = game.Players.LocalPlayer
+
 local function unwrap(wrapped)
     if type(wrapped) == "table" then
         local real = {}
@@ -128,10 +131,9 @@ local function unwrap(wrapped)
 end
 
 local function wrap(real)
-    for w, r in next, wrappercache do
-        if r == real then
-            return w
-        end
+    -- Check if the object has already been wrapped
+    if wrappercache[real] then
+        return wrappercache[real]
     end
 
     if type(real) == "userdata" then
@@ -161,6 +163,13 @@ local function wrap(real)
                 end
             end
 
+            -- Block Kick method on LocalPlayer
+            if real == LocalPlayer and index == "Kick" then
+                return function(...)
+                    warn("cAPI :: Attempt to call 'Kick' on LocalPlayer blocked")
+                end
+            end
+
             -- Allow access to other properties/methods
             if typeof(real[index]) == "function" then
                 return function(self, ...)
@@ -179,7 +188,7 @@ local function wrap(real)
             return tostring(real)
         end
 
-        wrappercache[fake] = real
+        wrappercache[real] = fake
         return fake
 
     elseif type(real) == "function" then
@@ -188,11 +197,12 @@ local function wrap(real)
             local results = wrap{ real(unpack(args)) }
             return unpack(results)
         end
-        wrappercache[fake] = real
+        wrappercache[real] = fake
         return fake
 
     elseif type(real) == "table" then
         local fake = {}
+        wrappercache[real] = fake
         for k, v in next, real do
             fake[k] = wrap(v)
         end
@@ -206,5 +216,6 @@ end
 -- Wrap the entire game environment
 local wrappedGame = wrap(game)
 
--- Replace the global `game` with the wrapped version
+-- Replace the global with wrapped environment
 game = wrappedGame
+
