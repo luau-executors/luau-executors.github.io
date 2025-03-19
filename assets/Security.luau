@@ -154,15 +154,6 @@ local function wrap(real)
                 return nil
             end
 
-            -- Block Kick and Destroy methods on Player instances
-            if typeof(real) == "Instance" and real.ClassName == "Player" then
-                if index == "Kick" or index == "Destroy" then
-                    return function(...)
-                        warn("cAPI :: Attempt to call '" .. index .. "' on Player instance blocked")
-                    end
-                end
-            end
-
             -- Block Kick method on LocalPlayer
             if real == LocalPlayer and index == "Kick" then
                 return function(...)
@@ -219,3 +210,4 @@ local wrappedGame = wrap(game)
 -- Replace the global with wrapped environment
 getgenv().game = wrappedGame
 
+-- Test the protection
